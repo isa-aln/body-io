@@ -1,13 +1,21 @@
 import { ALL, repUnit } from '../data/exercises';
 import { historyFor, recommend, sessionWeight } from '../lib/progression';
+import { formatWeight, roundLoad, toDisplay, toKg, type Unit } from '../lib/units';
 import type { Routine, SessionLog } from '../types';
 
 interface Props {
   routines: Routine[];
   routine: Routine;
   log: SessionLog[];
+  unit: Unit;
+  places: string[];
+  place: string | null;
+  needsBackup: boolean;
   onPick: (id: string) => void;
   onWeight: (entryIndex: number, weight: number | null) => void;
+  onPlace: (place: string | null) => void;
+  onAddPlace: () => void;
+  onBackup: () => void;
   onStart: () => void;
   onPlan: () => void;
 }
@@ -24,9 +32,54 @@ function lastDone(routine: Routine, log: SessionLog[]): string | null {
   return dates.length ? dates[dates.length - 1] : null;
 }
 
-export default function TrainPage({ routines, routine, log, onPick, onWeight, onStart, onPlan }: Props) {
+export default function TrainPage({
+  routines,
+  routine,
+  log,
+  unit,
+  places,
+  place,
+  needsBackup,
+  onPick,
+  onWeight,
+  onPlace,
+  onAddPlace,
+  onBackup,
+  onStart,
+  onPlan,
+}: Props) {
   return (
     <div className="train">
+      {needsBackup && (
+        <div className="backup-nudge">
+          <span>
+            Your training history only lives in this browser. Clearing site data would wipe it.
+          </span>
+          <button onClick={onBackup}>Back it up</button>
+        </div>
+      )}
+
+      {(places.length > 0 || log.length > 0) && (
+        <div className="place-bar">
+          <label>
+            Gym
+            <select
+              value={place ?? ''}
+              onChange={(e) => (e.target.value === '__add' ? onAddPlace() : onPlace(e.target.value || null))}
+            >
+              <option value="">Not set</option>
+              {places.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+              <option value="__add">Add a gym…</option>
+            </select>
+          </label>
+          <small>Weights are compared within a gym, so a Smith machine never sets your barbell target.</small>
+        </div>
+      )}
+
       <div className="routine-cards">
         {routines.map((r) => {
           const done = lastDone(r, log);
@@ -60,8 +113,8 @@ export default function TrainPage({ routines, routine, log, onPick, onWeight, on
         <ul className="train-list">
           {routine.entries.map((e, i) => {
             const ex = ALL[e.exId];
-            const rec = recommend(e, log);
-            const past = historyFor(log, e.exId);
+            const rec = recommend(e, log, place);
+            const past = historyFor(log, e.exId, place);
             const last = past[past.length - 1];
             return (
               <li key={`${e.exId}-${i}`}>
@@ -90,13 +143,15 @@ export default function TrainPage({ routines, routine, log, onPick, onWeight, on
                     <input
                       type="number"
                       min={0}
-                      step={0.5}
-                      value={e.weight ?? ''}
+                      step={unit === 'kg' ? 0.5 : 1}
+                      value={e.weight == null ? '' : roundLoad(toDisplay(e.weight, unit), unit)}
                       placeholder="—"
-                      onChange={(ev) => onWeight(i, ev.target.value === '' ? null : Number(ev.target.value))}
+                      onChange={(ev) =>
+                        onWeight(i, ev.target.value === '' ? null : toKg(Number(ev.target.value), unit))
+                      }
                       aria-label={`Weight for ${ex.n}`}
                     />
-                    <span>kg</span>
+                    <span>{unit}</span>
                   </label>
                   <span className="by">
                     {e.sets} × {e.reps}
@@ -104,7 +159,8 @@ export default function TrainPage({ routines, routine, log, onPick, onWeight, on
                   </span>
                   {last && (
                     <span className="last">
-                      last {dateLabel(last.date)}: {sessionWeight(last) != null ? `${sessionWeight(last)}kg ` : ''}
+                      last {dateLabel(last.date)}:{' '}
+                      {sessionWeight(last) != null ? `${formatWeight(sessionWeight(last), unit)} ` : ''}
                       {last.sets.map((s) => s.reps).join(', ')}
                     </span>
                   )}

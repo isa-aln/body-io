@@ -3,10 +3,29 @@ import type { Entry, Routine, SessionLog } from '../types';
 
 const KEY = 'bodyio.v1';
 
+export interface Settings {
+  unit: 'kg' | 'lb';
+  /** gyms the user trains at; weights are compared within a gym, not across */
+  places: string[];
+  activePlace: string | null;
+  /** how many sessions have been logged since the last backup was taken */
+  sinceBackup: number;
+  seenIntro: boolean;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  unit: 'kg',
+  places: [],
+  activePlace: null,
+  sinceBackup: 0,
+  seenIntro: false,
+};
+
 export interface Store {
   routines: Routine[];
   activeRoutineId: string | null;
   log: SessionLog[];
+  settings: Settings;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -48,6 +67,7 @@ export function loadStore(): Store | null {
       routines,
       activeRoutineId: routines.some((r) => r.id === d?.activeRoutineId) ? d.activeRoutineId : routines[0].id,
       log: Array.isArray(d?.log) ? d.log.filter((l: SessionLog) => ALL[l.exId]) : [],
+      settings: { ...DEFAULT_SETTINGS, ...(d?.settings ?? {}) },
     };
   } catch {
     return null;

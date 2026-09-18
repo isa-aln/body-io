@@ -1,15 +1,17 @@
 import { ALL, MAX_REPS, repUnit } from '../data/exercises';
 import { recommend } from '../lib/progression';
+import { roundLoad, toDisplay, toKg, type Unit } from '../lib/units';
 import type { Entry, Routine, SessionLog } from '../types';
 
 interface Props {
   routine: Routine;
+  unit: Unit;
   log: SessionLog[];
   onChange: (entries: Entry[]) => void;
   onRename: (name: string) => void;
 }
 
-export default function RoutineEditor({ routine, log, onChange, onRename }: Props) {
+export default function RoutineEditor({ routine, unit, log, onChange, onRename }: Props) {
   const entries = routine.entries;
 
   const patch = (i: number, p: Partial<Entry>) => {
@@ -87,12 +89,14 @@ export default function RoutineEditor({ routine, log, onChange, onRename }: Prop
                     type="number"
                     step="0.5"
                     min="0"
-                    value={w.weight ?? ''}
+                    value={w.weight == null ? '' : roundLoad(toDisplay(w.weight, unit), unit)}
                     placeholder="—"
-                    onChange={(e) => patch(i, { weight: e.target.value === '' ? null : Number(e.target.value) })}
-                    aria-label="Weight in kilograms"
+                    onChange={(e) =>
+                      patch(i, { weight: e.target.value === '' ? null : toKg(Number(e.target.value), unit) })
+                    }
+                    aria-label={`Weight in ${unit}`}
                   />
-                  <span className="rr">kg</span>
+                  <span className="rr">{unit}</span>
                 </label>
                 <span className="vol">{w.sets} sets</span>
               </div>

@@ -22,9 +22,15 @@ export interface Recommendation {
   note: string;
 }
 
-/** Every session logged for one exercise, oldest first. */
-export const historyFor = (log: SessionLog[], exId: string) =>
-  log.filter((h) => h.exId === exId).sort((a, b) => a.date.localeCompare(b.date));
+/**
+ * Every session logged for one exercise, oldest first. Filtered by gym when one
+ * is given: 40kg on a Smith machine is not 40kg on a barbell, so mixing them
+ * would make the recommendation nonsense.
+ */
+export const historyFor = (log: SessionLog[], exId: string, place?: string | null) =>
+  log
+    .filter((h) => h.exId === exId && (!place || !h.place || h.place === place))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
 /** The weight actually used in a session — the heaviest set, ignoring blanks. */
 export const sessionWeight = (s: SessionLog): number | null => {
@@ -50,10 +56,10 @@ const round = (n: number) => Math.round(n * 2) / 2;
  *   short of the range twice running
  *       -> drop about 10% and rebuild
  */
-export function recommend(entry: Entry, history: SessionLog[]): Recommendation {
+export function recommend(entry: Entry, history: SessionLog[], place?: string | null): Recommendation {
   const ex = ALL[entry.exId];
   const [low, high] = ex.rr;
-  const past = historyFor(history, entry.exId);
+  const past = historyFor(history, entry.exId, place);
   const last = past[past.length - 1];
 
   if (!last || !last.sets.length) {
@@ -122,10 +128,10 @@ export function recommend(entry: Entry, history: SessionLog[]): Recommendation {
 }
 
 /** Roll a finished session into the plan, so the day is ready next time. */
-export function applyProgress(entries: Entry[], log: SessionLog[]): Entry[] {
+export function applyProgress(entries: Entry[], log: SessionLog[], place?: string | null): Entry[] {
   return entries.map((e) => {
-    if (!historyFor(log, e.exId).length) return e;
-    const rec = recommend(e, log);
+    if (!historyFor(log, e.exId, place).length) return e;
+    const rec = recommend(e, log, place);
     return { ...e, weight: rec.weight, reps: rec.reps };
   });
 }

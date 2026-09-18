@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ALL, repUnit } from '../data/exercises';
 import { historyFor, sessionReps, sessionWeight } from '../lib/progression';
+import { formatWeight, type Unit } from '../lib/units';
 import type { SessionLog } from '../types';
 
 interface Props {
   log: SessionLog[];
+  unit: Unit;
   onExit: () => void;
   onClear: () => void;
 }
@@ -34,7 +36,7 @@ function Trend({ points }: { points: number[] }) {
   );
 }
 
-export default function History({ log, onExit, onClear }: Props) {
+export default function History({ log, unit, onExit, onClear }: Props) {
   const [open, setOpen] = useState<string | null>(null);
 
   /** One row per exercise, most recently trained first. */
@@ -82,8 +84,10 @@ export default function History({ log, onExit, onClear }: Props) {
                   </span>
                   <Trend points={r.weights} />
                   <span className="now">
-                    {lastW != null ? `${lastW}kg` : '—'}
-                    {r.best != null && lastW != null && r.best > lastW && <small>best {r.best}kg</small>}
+                    {formatWeight(lastW, unit)}
+                    {r.best != null && lastW != null && r.best > lastW && (
+                      <small>best {formatWeight(r.best, unit)}</small>
+                    )}
                   </span>
                 </button>
 
@@ -109,7 +113,7 @@ export default function History({ log, onExit, onClear }: Props) {
                                 {dateLabel(s.date)}
                                 {s.routineName && <small> {s.routineName}</small>}
                               </td>
-                              <td>{sessionWeight(s) != null ? `${sessionWeight(s)}kg` : '—'}</td>
+                              <td>{formatWeight(sessionWeight(s), unit)}</td>
                               <td>{s.sets[0]?.target ?? '—'}</td>
                               <td>
                                 {s.sets.map((x) => x.reps).join(', ')}

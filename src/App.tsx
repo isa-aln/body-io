@@ -6,6 +6,7 @@ import TargetingPreview from './components/TargetingPreview';
 import SessionMode from './components/SessionMode';
 import ShareBar from './components/ShareBar';
 import History from './components/History';
+import Intro from './components/Intro';
 import TrainPage from './components/TrainPage';
 import { fromLinkHash, mergeLogs } from './lib/share';
 import { applyProgress } from './lib/progression';
@@ -13,7 +14,8 @@ import { ALL, byName } from './data/exercises';
 import { GROUP_OF, NAME, short } from './data/anatomy';
 import { viewFor, viewForMuscle } from './lib/view';
 import { targeting } from './lib/targeting';
-import { loadStore, saveStore } from './lib/storage';
+import { DEFAULT_SETTINGS, loadStore, saveStore, type Settings } from './lib/storage';
+import { download, toBackup } from './lib/share';
 import type { Entry, MuscleId, Routine, SessionLog, View } from './types';
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -65,6 +67,8 @@ export default function App() {
   const [activeId, setActiveId] = useState<string>(saved?.activeRoutineId ?? '');
   const [log, setLog] = useState<SessionLog[]>(saved?.log ?? []);
   const [route, setRoute] = useState<Route>(routeFromHash);
+  const [settings, setSettings] = useState<Settings>(saved?.settings ?? DEFAULT_SETTINGS);
+  const [showIntro, setShowIntro] = useState(!saved);
 
   const [selected, setSelected] = useState<MuscleId | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
@@ -75,8 +79,8 @@ export default function App() {
   const routine = routines.find((r) => r.id === activeId) ?? routines[0];
 
   useEffect(() => {
-    saveStore({ routines, activeRoutineId: routine.id, log });
-  }, [routines, routine.id, log]);
+    saveStore({ routines, activeRoutineId: routine.id, log, settings });
+  }, [routines, routine.id, log, settings]);
 
   // each page has its own URL, so the back button and home-screen shortcuts work
   useEffect(() => {
@@ -102,6 +106,23 @@ export default function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pinned]);
+
+  const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setSettings((s) => ({ ...s, [k]: v }));
+
+  const addPlace = () => {
+    const name = prompt('Name this gym (e.g. "Main gym", "Second gym")')?.trim();
+    if (!name) return;
+    setSettings((s) => ({
+      ...s,
+      places: s.places.includes(name) ? s.places : [...s.places, name],
+      activePlace: name,
+    }));
+  };
+
+  const backup = () => {
+    download(`body-io-backup-${new Date().toISOString().slice(0, 10)}.json`, toBackup(routines, log));
+    set('sinceBackup', 0);
+  };
 
   const updateRoutine = (fn: (r: Routine) => Routine) =>
     setRoutines((rs) => rs.map((r) => (r.id === routine.id ? fn(r) : r)));
@@ -184,6 +205,7 @@ export default function App() {
     return (
       <History
         log={log}
+        unit={settings.unit}
         onExit={() => go('train')}
         onClear={() => {
           if (confirm('Delete every logged session? This cannot be undone.')) setLog([]);
@@ -197,12 +219,15 @@ export default function App() {
       <SessionMode
         routine={routine}
         log={log}
+        unit={settings.unit}
+        place={settings.activePlace}
         onExit={() => go('train')}
         onSave={(logs) => {
           const nextLog = [...log, ...logs];
           setLog(nextLog);
           // the routine now carries the weights and reps to aim for next time
-          setEntries(applyProgress(routine.entries, nextLog));
+          setEntries(applyProgress(routine.entries, nextLog, settings.activePlace));
+          set('sinceBackup', settings.sinceBackup + 1);
           go('train');
         }}
       />
@@ -220,18 +245,47 @@ export default function App() {
           Plan
         </button>
         <button onClick={() => go('progress')}>Progress</button>
+        <button
+          className="unit"
+          onClick={() => set('unit', settings.unit === 'kg' ? 'lb' : 'kg')}
+          title="Switch units"
+        >
+          {settings.unit}
+        </button>
       </nav>
     </header>
+  );
+
+  const intro = showIntro && !settings.seenIntro && (
+    <Intro
+      onClose={() => {
+        setShowIntro(false);
+        set('seenIntro', true);
+      }}
+      onPlan={() => {
+        setShowIntro(false);
+        set('seenIntro', true);
+        go('plan');
+      }}
+    />
   );
 
   if (route === 'train') {
     return (
       <>
+        {intro}
         {nav}
         <TrainPage
           routines={routines}
           routine={routine}
           log={log}
+          unit={settings.unit}
+          places={settings.places}
+          place={settings.activePlace}
+          needsBackup={settings.sinceBackup >= 5}
+          onPlace={(p) => set('activePlace', p)}
+          onAddPlace={addPlace}
+          onBackup={backup}
           onPick={setActiveId}
           onWeight={(i, weight) => setEntries(routine.entries.map((e, k) => (k === i ? { ...e, weight } : e)))}
           onStart={() => go('session')}
@@ -243,6 +297,7 @@ export default function App() {
 
   return (
     <>
+      {intro}
       {nav}
       <p className="page-note">
         One routine is one session. Build it here — pick a muscle to find exercises, then set sets and reps.
@@ -348,7 +403,7 @@ export default function App() {
             onImportLog={(incoming) => setLog((l) => mergeLogs(l, incoming))}
           />
 
-          <RoutineEditor routine={routine} log={log} onChange={setEntries} onRename={rename} />
+          <RoutineEditor routine={routine} unit={settings.unit} log={log} onChange={setEntries} onRename={rename} />
 
           <TargetingPreview
             hovered={hoveredMuscle}

@@ -3,6 +3,17 @@ import type { Equipment, Exercise, MuscleId } from '../types';
 type Raw = { n: string; t: Record<MuscleId, number> };
 
 const ISOLATION_RAW: Raw[] = [
+  { n: 'Standing dumbbell curl', t: { bicepsShort: 0.9, bicepsLong: 0.8, brachialis: 0.4, forearmFlexors: 0.3 } },
+  { n: 'Cable curl', t: { bicepsShort: 0.9, bicepsLong: 0.8, brachialis: 0.3 } },
+  { n: 'Machine lateral raise', t: { sideDelts: 1 } },
+  { n: 'Machine rear delt fly', t: { rearDelts: 1, rhomboids: 0.3, midTraps: 0.3 } },
+  { n: 'Dumbbell shrug', t: { upperTraps: 1, forearmFlexors: 0.3 } },
+  { n: 'Smith machine shrug', t: { upperTraps: 1 } },
+  { n: 'Dumbbell triceps kickback', t: { tricepsLateral: 0.9, tricepsLong: 0.6 } },
+  { n: 'Rope pushdown', t: { tricepsLateral: 1, tricepsLong: 0.6 } },
+  { n: 'Machine leg extension', t: { rectusFemoris: 1, vastusLateralis: 0.9, vastusMedialis: 0.9 } },
+  { n: 'Glute-ham raise', t: { bicepsFemoris: 1, semis: 1, erectors: 0.4 } },
+  { n: 'Smith machine calf raise', t: { gastrocMedial: 1, gastrocLateral: 0.9, soleus: 0.4 } },
   { n: 'Incline dumbbell fly', t: { upperChest: 1, midChest: 0.4, frontDelts: 0.3 } },
   { n: 'Low-to-high cable fly', t: { upperChest: 1, frontDelts: 0.3, midChest: 0.3 } },
   { n: 'Flat dumbbell fly', t: { midChest: 1, upperChest: 0.3, lowerChest: 0.4 } },
@@ -52,6 +63,18 @@ const ISOLATION_RAW: Raw[] = [
 ];
 
 const COMPOUND_RAW: Raw[] = [
+  { n: 'Smith machine squat', t: { vastusLateralis: 0.9, vastusMedialis: 0.9, rectusFemoris: 0.7, gluteMax: 0.6, adductors: 0.5, erectors: 0.3 } },
+  { n: 'Smith machine bench press', t: { midChest: 1, lowerChest: 0.7, upperChest: 0.5, frontDelts: 0.6, tricepsLateral: 0.5, tricepsLong: 0.5 } },
+  { n: 'Smith machine incline press', t: { upperChest: 1, midChest: 0.6, frontDelts: 0.8, tricepsLong: 0.5 } },
+  { n: 'Smith machine overhead press', t: { frontDelts: 1, sideDelts: 0.6, tricepsLong: 0.7, tricepsLateral: 0.6, upperTraps: 0.4 } },
+  { n: 'Smith machine row', t: { rhomboids: 0.9, midTraps: 0.9, lats: 0.8, rearDelts: 0.6, bicepsShort: 0.5 } },
+  { n: 'Machine chest press', t: { midChest: 1, lowerChest: 0.6, upperChest: 0.5, frontDelts: 0.5, tricepsLateral: 0.5 } },
+  { n: 'Machine shoulder press', t: { frontDelts: 1, sideDelts: 0.6, tricepsLong: 0.6, tricepsLateral: 0.5 } },
+  { n: 'Seated cable row', t: { rhomboids: 1, midTraps: 0.9, lats: 0.8, rearDelts: 0.5, bicepsShort: 0.5, brachialis: 0.4 } },
+  { n: 'Single-arm dumbbell row', t: { lats: 1, rhomboids: 0.7, midTraps: 0.6, rearDelts: 0.5, bicepsShort: 0.4 } },
+  { n: 'Hack squat', t: { vastusLateralis: 1, vastusMedialis: 1, rectusFemoris: 0.6, gluteMax: 0.5, adductors: 0.4 } },
+  { n: 'Goblet squat', t: { vastusLateralis: 0.8, vastusMedialis: 0.8, rectusFemoris: 0.6, gluteMax: 0.6, adductors: 0.5, upperAbs: 0.4 } },
+  { n: 'Push-up', t: { midChest: 0.9, lowerChest: 0.5, upperChest: 0.4, frontDelts: 0.5, tricepsLateral: 0.5, serratus: 0.4 } },
   {
     n: 'Barbell back squat',
     t: { vastusLateralis: 0.9, vastusMedialis: 0.9, rectusFemoris: 0.6, gluteMax: 0.7, adductors: 0.6, erectors: 0.5, semis: 0.3, bicepsFemoris: 0.3, upperAbs: 0.3 },
@@ -101,11 +124,32 @@ const COMPOUND_RAW: Raw[] = [
 ];
 
 const EQUIP: Record<Exclude<Equipment, 'other'>, string[]> = {
-  barbell: ['Barbell shrug', 'Barbell curl', 'Preacher curl', 'Reverse curl', 'Skull crusher', 'Wrist curl', 'Reverse wrist curl', 'Hip thrust', 'Barbell back squat', 'Front squat', 'Conventional deadlift', 'Sumo deadlift', 'Romanian deadlift', 'Good morning', 'Barbell bench press', 'Incline bench press', 'Overhead press', 'Barbell bent-over row'],
-  dumbbell: ['Incline dumbbell fly', 'Flat dumbbell fly', 'Front raise', 'Lateral raise', 'Prone Y-raise', 'Incline dumbbell curl', 'Concentration curl', 'Hammer curl', 'Overhead triceps extension', 'Walking lunge', 'Bulgarian split squat', "Farmer's carry"],
-  cable: ['Low-to-high cable fly', 'High-to-low cable crossover', 'Cable lateral raise', 'Face pull', 'Cable external rotation', 'Straight-arm pulldown', 'Triceps pushdown', 'Cable crunch', 'Cable woodchop', 'Serratus punch', 'Cable kickback', 'Cable hip flexion'],
-  machine: ['Pec deck fly', 'Reverse pec deck', 'Hip abduction', 'Hip adduction machine', 'Leg extension', 'Lying leg curl', 'Seated leg curl', 'Standing calf raise', 'Seated calf raise', 'Leg press', 'Lat pulldown', 'Chest-supported row'],
-  bodyweight: ['Back extension', 'Reverse crunch', 'Hanging leg raise', 'Plank', 'Side plank', 'Sissy squat', 'Nordic curl', 'Tibialis raise', 'Dip', 'Pull-up', 'Chin-up'],
+  barbell: [
+    'Smith machine squat',
+    'Smith machine bench press',
+    'Smith machine incline press',
+    'Smith machine overhead press',
+    'Smith machine row',
+    'Smith machine shrug',
+    'Smith machine calf raise','Barbell shrug', 'Barbell curl', 'Preacher curl', 'Reverse curl', 'Skull crusher', 'Wrist curl', 'Reverse wrist curl', 'Hip thrust', 'Barbell back squat', 'Front squat', 'Conventional deadlift', 'Sumo deadlift', 'Romanian deadlift', 'Good morning', 'Barbell bench press', 'Incline bench press', 'Overhead press', 'Barbell bent-over row'],
+  dumbbell: [
+    'Standing dumbbell curl',
+    'Dumbbell shrug',
+    'Dumbbell triceps kickback',
+    'Single-arm dumbbell row',
+    'Goblet squat','Incline dumbbell fly', 'Flat dumbbell fly', 'Front raise', 'Lateral raise', 'Prone Y-raise', 'Incline dumbbell curl', 'Concentration curl', 'Hammer curl', 'Overhead triceps extension', 'Walking lunge', 'Bulgarian split squat', "Farmer's carry"],
+  cable: [
+    'Cable curl',
+    'Rope pushdown',
+    'Seated cable row','Low-to-high cable fly', 'High-to-low cable crossover', 'Cable lateral raise', 'Face pull', 'Cable external rotation', 'Straight-arm pulldown', 'Triceps pushdown', 'Cable crunch', 'Cable woodchop', 'Serratus punch', 'Cable kickback', 'Cable hip flexion'],
+  machine: [
+    'Machine lateral raise',
+    'Machine rear delt fly',
+    'Machine leg extension',
+    'Machine chest press',
+    'Machine shoulder press',
+    'Hack squat','Pec deck fly', 'Reverse pec deck', 'Hip abduction', 'Hip adduction machine', 'Leg extension', 'Lying leg curl', 'Seated leg curl', 'Standing calf raise', 'Seated calf raise', 'Leg press', 'Lat pulldown', 'Chest-supported row'],
+  bodyweight: ['Glute-ham raise', 'Push-up','Back extension', 'Reverse crunch', 'Hanging leg raise', 'Plank', 'Side plank', 'Sissy squat', 'Nordic curl', 'Tibialis raise', 'Dip', 'Pull-up', 'Chin-up'],
 };
 
 const EQ_OF: Record<string, Equipment> = {};
@@ -122,6 +166,14 @@ export const EQ_LABEL: Record<string, string> = {
 
 /** [low, high, default] reps. */
 const REPS: Record<string, [number, number, number]> = {
+  'Smith machine squat': [6, 10, 8], 'Smith machine bench press': [6, 10, 8], 'Smith machine incline press': [8, 10, 8],
+  'Smith machine overhead press': [6, 10, 8], 'Smith machine row': [8, 12, 10], 'Smith machine shrug': [10, 14, 12],
+  'Smith machine calf raise': [10, 14, 12], 'Machine chest press': [8, 12, 10], 'Machine shoulder press': [8, 12, 10],
+  'Seated cable row': [8, 12, 10], 'Single-arm dumbbell row': [8, 12, 10], 'Hack squat': [8, 12, 10],
+  'Goblet squat': [10, 14, 12], 'Push-up': [10, 15, 12], 'Standing dumbbell curl': [8, 12, 10],
+  'Cable curl': [10, 14, 12], 'Machine lateral raise': [12, 15, 14], 'Machine rear delt fly': [12, 15, 14],
+  'Dumbbell shrug': [10, 14, 12], 'Dumbbell triceps kickback': [12, 15, 14], 'Rope pushdown': [10, 14, 12],
+  'Machine leg extension': [10, 14, 12], 'Glute-ham raise': [6, 10, 8],
   'Barbell back squat': [6, 8, 6], 'Front squat': [6, 8, 6], 'Conventional deadlift': [4, 6, 4], 'Sumo deadlift': [4, 6, 4], 'Romanian deadlift': [8, 10, 8], 'Good morning': [8, 12, 10],
   'Barbell bench press': [6, 8, 6], 'Incline bench press': [8, 10, 8], 'Overhead press': [6, 8, 6], 'Barbell bent-over row': [8, 10, 8],
   Dip: [8, 12, 10], 'Pull-up': [6, 10, 8], 'Chin-up': [6, 10, 8], 'Lat pulldown': [8, 12, 10], 'Chest-supported row': [8, 12, 10], 'Leg press': [10, 12, 10], 'Walking lunge': [10, 12, 10], 'Bulgarian split squat': [8, 12, 10], "Farmer's carry": [30, 40, 30],

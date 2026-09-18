@@ -1,75 +1,69 @@
-# React + TypeScript + Vite
+# body.io — Phase 1 port
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Drop-in replacement for the `src/` folder of the Vite React+TS project you just
+created, plus an `index.html` with the right title.
 
-Currently, two official plugins are available:
+## Installing
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+From inside `body-io/`:
 
-## React Compiler
+1. Unzip so that `src/` and `index.html` land next to `package.json`, overwriting
+   what Vite generated.
+2. Delete leftovers from the template you no longer need: `src/App.css`,
+   `src/assets/`.
+3. `npm run dev`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+No extra dependencies — it's plain React, no UI library.
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Layout
 
 ```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+src/
+  types.ts                  shared TypeScript types
+  data/anatomy.ts           muscle groups, heads, SVG paths for both views
+  data/exercises.ts         exercise library: targeting, equipment, rep ranges, star picks
+  lib/targeting.ts          sets per head and per group
+  lib/progression.ts        logged reps -> next session's weight
+  lib/storage.ts            localStorage load/save
+  components/BodyMap.tsx    the figure: selectable, or a heat map when given fills
+  components/MusclePicker.tsx
+  components/ExerciseBrowser.tsx   search, filters, isolation/compound plates
+  components/DayEditor.tsx  sets / reps / weight for one day
+  components/TargetingPreview.tsx
+  App.tsx                   state and layout
 ```
+
+## What changed from the HTML version
+
+**Effort/RPE is gone.** Volume is plain set counts everywhere. Three sets is
+three sets — no 0.85 multiplier to reason about. `targeting()` gives sets per
+muscle head weighted by how hard the exercise loads it; `setsPerGroup()` counts
+each exercise once per group at its strongest head, which is the number to
+compare against weekly landmarks.
+
+**Presets, customs and the week planner are replaced by one routine model.** A
+routine has a length of 1 day, 2 days, or a week, and holds that many days of
+exercises. Routines are editable — there's no read-only/fine-tune split. The
+targeting preview toggles between the current day and the whole routine.
+
+**Weight and progression are in.** Every entry has a `weight` field, and
+`lib/progression.ts` holds the rule: all sets at the top of the range -> add
+2.5kg upper / 5kg lower (1kg on isolation); inside the range -> same weight,
+chase one more rep; below the bottom twice running -> drop 10%. `recommend()`
+takes an entry plus the log and returns the next prescription with a one-line
+note — that note is what the watch will show. Nothing writes to the log yet;
+that's session mode.
+
+## Not ported
+
+Share (text/image/link), the print sheet, quick-start routine builder, and the
+balance assistant. All of it is in the original HTML and can come back once the
+core is settled — but session mode matters more than any of them.
+
+## Next
+
+1. Session mode: one exercise at a time, target weight x reps, rest timer, a rep
+   entry per set that writes a `SessionLog`. This is the screen you'll use in the
+   gym and the one the watch mirrors.
+2. PWA manifest + service worker so it installs on the iPhone.
+3. Supabase for accounts and sync.

@@ -513,3 +513,119 @@ header { align-items: center; }
 /* routine cards fill the width now that they are the only unit */
 .routine-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
 .rcard { padding: 10px 14px; }
+
+/* ---------- unit switch ---------- */
+.pages .unit { min-width: 44px; text-transform: lowercase; font-variant-numeric: tabular-nums; }
+
+/* ---------- gym + backup ---------- */
+.place-bar { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12.5px; color: var(--ink-dim); }
+.place-bar label { display: inline-flex; align-items: center; gap: 6px; }
+.place-bar select {
+  background: var(--panel);
+  border: 1px solid var(--line-faint);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+.place-bar small { flex: 1 1 260px; opacity: 0.8; }
+
+.backup-nudge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--warm);
+  border-radius: var(--r);
+  background: rgba(255, 182, 72, 0.08);
+  font-size: 13px;
+}
+.backup-nudge span { flex: 1; }
+.backup-nudge button {
+  padding: 5px 14px;
+  border-radius: var(--r);
+  background: var(--warm);
+  color: #1a1206;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- session extras ---------- */
+.queue li.skipped { color: var(--ink-dim); opacity: 0.6; }
+.queue li.skipped .pick { text-decoration: line-through dotted; }
+
+/* ---------- first run ---------- */
+.intro-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(4, 10, 8, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: auto;
+}
+.intro {
+  width: min(520px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line-dim);
+  border-radius: var(--r);
+  padding: 26px 24px 20px;
+}
+.intro h2 { margin: 0; font-size: 30px; font-weight: 700; color: var(--ink); }
+.intro h2 span { color: var(--line); }
+.intro .lede { margin: 4px 0 18px; color: var(--ink-dim); }
+.intro-steps { list-style: none; counter-reset: s; padding: 0; margin: 0; }
+.intro-steps li { counter-increment: s; display: grid; grid-template-columns: 26px 1fr; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--line-faint); }
+.intro-steps li::before { content: counter(s); grid-row: span 2; color: var(--line); font-weight: 700; font-size: 18px; }
+.intro-steps b { font-size: 16px; }
+.intro-steps span { color: var(--ink-dim); font-size: 13.5px; }
+.intro-foot { display: flex; gap: 10px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.intro-foot .go { padding: 10px 20px; border-radius: var(--r); background: var(--line); color: #062012; font-weight: 700; }
+.intro-foot button:not(.go) { color: var(--ink-dim); font-size: 13px; }
+.intro-foot button:not(.go):hover { color: var(--ink); }
+
+/* ---------- phones ---------- */
+@media (max-width: 720px) {
+  header { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px 16px 10px; gap: 10px; }
+  header h1 { font-size: 20px; }
+  .pages { width: 100%; gap: 6px; }
+  .pages button { flex: 1; padding: 8px 6px; font-size: 13px; }
+  .pages .unit { flex: 0 0 48px; }
+
+  .page-note { margin: 10px 16px 0; font-size: 12.5px; }
+  main > section { padding: 14px 16px; }
+
+  /* the body map is the anchor: keep it a sensible size, not a full screen */
+  .body-wrap { max-width: 260px; }
+
+  .train { padding: 14px 16px 40px; }
+  .train-head { flex-wrap: wrap; }
+  .train-head .start { width: 100%; padding: 14px; font-size: 16px; }
+  .routine-cards { grid-template-columns: 1fr 1fr; }
+  .prescription { gap: 8px; }
+  .prescription .last { margin-left: 0; flex-basis: 100%; }
+
+  /* session mode is used one-handed, mid-set */
+  .session { padding: 14px 16px 36px; }
+  .now .ex-name { font-size: 24px; }
+  .entry { gap: 12px; }
+  .big-step input { width: 72px; font-size: 20px; }
+  .big-step button { padding: 12px 16px; }
+  .actions .go { flex: 1; padding: 14px; }
+
+  .history { padding: 14px 16px 36px; }
+  .hrow { grid-template-columns: 1fr 70px; row-gap: 4px; }
+  .hrow .trend { grid-column: 1 / -1; order: 3; }
+  .sessions { font-size: 12px; }
+}
+
+/* home-screen launch: keep content clear of the notch and the home bar */
+@supports (padding: max(0px)) {
+  header { padding-top: max(14px, env(safe-area-inset-top)); }
+  .train, .session, .history { padding-bottom: max(36px, calc(env(safe-area-inset-bottom) + 24px)); }
+}

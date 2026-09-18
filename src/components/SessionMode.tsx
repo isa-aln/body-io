@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ALL, repUnit } from '../data/exercises';
 import { recommend } from '../lib/progression';
+import { formatWeight, roundLoad, step, toDisplay, toKg, type Unit } from '../lib/units';
 import type { Routine, SessionLog, SetLog } from '../types';
 
 interface Props {
   routine: Routine;
   log: SessionLog[];
+  unit: Unit;
+  place: string | null;
   onSave: (logs: SessionLog[]) => void;
   onExit: () => void;
 }
@@ -15,12 +18,12 @@ const restFor = (kind: string) => (kind === 'comp' ? 180 : 90);
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-export default function SessionMode({ routine, log, onSave, onExit }: Props) {
+export default function SessionMode({ routine, log, unit, place, onSave, onExit }: Props) {
   /** What we set out to do, with the weight the progression engine suggests. */
   const plan = useMemo(
     () =>
       routine.entries.map((entry) => {
-        const rec = recommend(entry, log);
+        const rec = recommend(entry, log, place);
         return {
           entry,
           ex: ALL[entry.exId],
@@ -29,25 +32,83 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
           note: rec.note,
         };
       }),
-    [routine, log]
+    [routine, log, place]
   );
 
   const [done, setDone] = useState<SetLog[][]>(() => plan.map(() => []));
+  /** sets planned for each exercise — editable mid-session, machines get taken */
+  const [setGoal, setSetGoal] = useState<number[]>(() => plan.map((p) => p.entry.sets));
+  const [skipped, setSkipped] = useState<boolean[]>(() => plan.map(() => false));
   const [exIndex, setExIndex] = useState(0);
   const [reps, setReps] = useState(plan[0]?.targetReps ?? 10);
   const [weight, setWeight] = useState<number | null>(plan[0]?.targetWeight ?? null);
   const [rest, setRest] = useState(0);
   const timer = useRef<number | null>(null);
+  const wakeLock = useRef<WakeLockSentinel | null>(null);
 
   const current = plan[exIndex];
   const setsDone = done[exIndex]?.length ?? 0;
-  const setsLeft = current ? current.entry.sets - setsDone : 0;
-  const finished = plan.every((p, i) => done[i].length >= p.entry.sets);
+  const goal = setGoal[exIndex] ?? current?.entry.sets ?? 0;
+  const setsLeft = current ? goal - setsDone : 0;
+  const finished = plan.every((_, i) => skipped[i] || done[i].length >= setGoal[i]);
+
+  /**
+   * Keep the screen on for the whole session. Without this the phone locks
+   * between sets and the timer disappears exactly when you need it.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    const acquire = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          const lock = await navigator.wakeLock.request('screen');
+          if (cancelled) lock.release();
+          else wakeLock.current = lock;
+        }
+      } catch {
+        // denied or unsupported — the session still works, the screen just sleeps
+      }
+    };
+    acquire();
+    // ask once, at the start of a session, which is the only time it makes sense
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !wakeLock.current) acquire();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      wakeLock.current?.release().catch(() => {});
+      wakeLock.current = null;
+    };
+  }, []);
+
+  /** A buzz when rest is up, for when the phone is in a pocket. */
+  const restDone = () => {
+    try {
+      navigator.vibrate?.([200, 100, 200]);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Rest is up', { body: current ? current.ex.n : 'Next set', silent: false });
+      }
+    } catch {
+      // nothing to do — the on-screen timer already hit zero
+    }
+  };
 
   // rest countdown
   useEffect(() => {
     if (rest <= 0) return;
-    timer.current = window.setInterval(() => setRest((r) => Math.max(0, r - 1)), 1000);
+    timer.current = window.setInterval(
+      () =>
+        setRest((r) => {
+          if (r <= 1) restDone();
+          return Math.max(0, r - 1);
+        }),
+      1000
+    );
     return () => {
       if (timer.current) window.clearInterval(timer.current);
     };
@@ -82,9 +143,9 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
     setDone(next);
 
     const doneHere = next[exIndex].length;
-    if (doneHere >= current.entry.sets) {
+    if (doneHere >= goal) {
       // move to the next exercise that still has sets left
-      const nextIdx = plan.findIndex((p, i) => i > exIndex && next[i].length < p.entry.sets);
+      const nextIdx = plan.findIndex((_, i) => i > exIndex && !skipped[i] && next[i].length < setGoal[i]);
       if (nextIdx >= 0) {
         goTo(nextIdx);
         setRest(restFor(current.ex.kind));
@@ -102,7 +163,13 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
   const finish = () => {
     const date = new Date().toISOString();
     const logs: SessionLog[] = plan
-      .map((p, i) => ({ date, routineName: routine.name, exId: p.entry.exId, sets: done[i] }))
+      .map((p, i) => ({
+        date,
+        routineName: routine.name,
+        place: place ?? undefined,
+        exId: p.entry.exId,
+        sets: done[i],
+      }))
       .filter((l) => l.sets.length > 0);
     onSave(logs);
   };
@@ -114,7 +181,8 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
       <div className="session-head">
         <h2>{routine.name}</h2>
         <span className="progress">
-          {plan.filter((p, i) => done[i].length >= p.entry.sets).length} / {plan.length} done
+          {plan.filter((_, i) => done[i].length >= setGoal[i]).length} / {plan.length} done
+          {place ? ` · ${place}` : ''}
         </span>
         <button onClick={onExit}>Close</button>
       </div>
@@ -122,14 +190,15 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
       <div className="now">
         <p className="ex-name">{current.ex.n}</p>
         <p className="target">
-          Set {Math.min(setsDone + 1, current.entry.sets)} of {current.entry.sets} ·{' '}
-          {current.targetWeight != null ? `${current.targetWeight}kg` : 'bodyweight'} × {current.targetReps}
+          Set {Math.min(setsDone + 1, goal)} of {goal} ·{' '}
+          {current.targetWeight != null ? formatWeight(current.targetWeight, unit) : 'bodyweight'} ×{' '}
+          {current.targetReps}
           {repUnit(current.ex)}
         </p>
         <p className="note">{current.note}</p>
 
         <div className="dots" aria-label="Sets completed">
-          {Array.from({ length: current.entry.sets }, (_, i) => (
+          {Array.from({ length: goal }, (_, i) => (
             <i key={i} className={i < setsDone ? 'on' : ''} />
           ))}
         </div>
@@ -155,10 +224,10 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
           </label>
 
           <label>
-            <span>Weight</span>
+            <span>Weight ({unit})</span>
             <span className="big-step">
               <button
-                onClick={() => setWeight((w) => Math.max(0, (w ?? 0) - 2.5))}
+                onClick={() => setWeight((w) => Math.max(0, toKg(toDisplay(w ?? 0, unit) - step(unit), unit)))}
                 aria-label="Less weight"
               >
                 −
@@ -166,13 +235,16 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
               <input
                 type="number"
                 inputMode="decimal"
-                step={0.5}
-                value={weight ?? ''}
+                step={unit === 'kg' ? 0.5 : 1}
+                value={weight == null ? '' : roundLoad(toDisplay(weight, unit), unit)}
                 placeholder="—"
-                onChange={(e) => setWeight(e.target.value === '' ? null : Number(e.target.value))}
-                aria-label="Weight in kilograms"
+                onChange={(e) => setWeight(e.target.value === '' ? null : toKg(Number(e.target.value), unit))}
+                aria-label={`Weight in ${unit}`}
               />
-              <button onClick={() => setWeight((w) => (w ?? 0) + 2.5)} aria-label="More weight">
+              <button
+                onClick={() => setWeight((w) => toKg(toDisplay(w ?? 0, unit) + step(unit), unit))}
+                aria-label="More weight"
+              >
                 +
               </button>
             </span>
@@ -185,10 +257,22 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
           </button>
           {setsDone > 0 && (
             <button onClick={undoSet}>
-              Undo last ({lastSet.weight != null ? `${lastSet.weight}kg × ` : ''}
+              Undo last ({lastSet.weight != null ? `${formatWeight(lastSet.weight, unit)} × ` : ''}
               {lastSet.reps})
             </button>
           )}
+          <button onClick={() => setSetGoal((g) => g.map((n, i) => (i === exIndex ? n + 1 : n)))}>
+            + a set
+          </button>
+          <button
+            onClick={() => {
+              setSkipped((sk) => sk.map((v, i) => (i === exIndex ? true : v)));
+              const nextIdx = plan.findIndex((_, i) => i > exIndex && !skipped[i] && done[i].length < setGoal[i]);
+              if (nextIdx >= 0) goTo(nextIdx);
+            }}
+          >
+            Skip this one
+          </button>
         </div>
 
         {rest > 0 && (
@@ -204,14 +288,22 @@ export default function SessionMode({ routine, log, onSave, onExit }: Props) {
       <ul className="queue">
         {plan.map((p, i) => {
           const sets = done[i];
-          const complete = sets.length >= p.entry.sets;
+          const complete = sets.length >= setGoal[i];
+          const isSkipped = skipped[i] && !sets.length;
           return (
-            <li key={`${p.entry.exId}-${i}`} className={i === exIndex ? 'on' : complete ? 'complete' : ''}>
+            <li
+              key={`${p.entry.exId}-${i}`}
+              className={i === exIndex ? 'on' : isSkipped ? 'skipped' : complete ? 'complete' : ''}
+            >
               <button className="pick" onClick={() => goTo(i)}>
                 {p.ex.n}
               </button>
               <span className="logged">
-                {sets.length ? sets.map((s) => `${s.reps}${repUnit(p.ex)}`).join(' · ') : `${p.entry.sets} sets`}
+                {sets.length
+                  ? sets.map((s) => `${s.reps}${repUnit(p.ex)}`).join(' · ')
+                  : isSkipped
+                    ? 'skipped'
+                    : `${setGoal[i]} sets`}
               </span>
             </li>
           );
