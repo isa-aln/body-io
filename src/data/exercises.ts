@@ -3,6 +3,13 @@ import type { Equipment, Exercise, MuscleId } from '../types';
 type Raw = { n: string; t: Record<MuscleId, number> };
 
 const ISOLATION_RAW: Raw[] = [
+  { n: 'Cable fly (mid)', t: { midChest: 1, upperChest: 0.4, lowerChest: 0.4, frontDelts: 0.3 } },
+  { n: 'Cable front raise', t: { frontDelts: 1, upperChest: 0.2 } },
+  { n: 'Cable rear delt fly', t: { rearDelts: 1, rhomboids: 0.3, midTraps: 0.3, rotatorCuff: 0.2 } },
+  { n: 'Cable upright row', t: { sideDelts: 0.9, upperTraps: 0.8, frontDelts: 0.3 } },
+  { n: 'Cable shrug', t: { upperTraps: 1, forearmFlexors: 0.3 } },
+  { n: 'Cable overhead triceps extension', t: { tricepsLong: 1, tricepsLateral: 0.5 } },
+  { n: 'Cable pull-through', t: { gluteMax: 1, semis: 0.7, bicepsFemoris: 0.7, erectors: 0.4 } },
   { n: 'Standing dumbbell curl', t: { bicepsShort: 0.9, bicepsLong: 0.8, brachialis: 0.4, forearmFlexors: 0.3 } },
   { n: 'Cable curl', t: { bicepsShort: 0.9, bicepsLong: 0.8, brachialis: 0.3 } },
   { n: 'Machine lateral raise', t: { sideDelts: 1 } },
@@ -56,6 +63,7 @@ const ISOLATION_RAW: Raw[] = [
   { n: 'Sissy squat', t: { rectusFemoris: 1, vastusMedialis: 0.7, vastusLateralis: 0.7 } },
   { n: 'Lying leg curl', t: { bicepsFemoris: 1, semis: 1, gastrocMedial: 0.3 } },
   { n: 'Seated leg curl', t: { semis: 1, bicepsFemoris: 0.9 } },
+  { n: 'Standing leg curl', t: { bicepsFemoris: 1, semis: 0.9, gastrocMedial: 0.2, gluteMax: 0.2 } },
   { n: 'Nordic curl', t: { bicepsFemoris: 1, semis: 1, gastrocMedial: 0.2 } },
   { n: 'Standing calf raise', t: { gastrocMedial: 1, gastrocLateral: 0.9, soleus: 0.4 } },
   { n: 'Seated calf raise', t: { soleus: 1, gastrocMedial: 0.3, gastrocLateral: 0.3 } },
@@ -63,6 +71,8 @@ const ISOLATION_RAW: Raw[] = [
 ];
 
 const COMPOUND_RAW: Raw[] = [
+  { n: 'Cable chest press', t: { midChest: 1, upperChest: 0.5, lowerChest: 0.5, frontDelts: 0.5, tricepsLateral: 0.5, tricepsLong: 0.4 } },
+  { n: 'Single-arm cable row', t: { lats: 1, rhomboids: 0.7, midTraps: 0.6, rearDelts: 0.5, bicepsShort: 0.4, obliques: 0.3 } },
   { n: 'Smith machine squat', t: { vastusLateralis: 0.9, vastusMedialis: 0.9, rectusFemoris: 0.7, gluteMax: 0.6, adductors: 0.5, erectors: 0.3 } },
   { n: 'Smith machine bench press', t: { midChest: 1, lowerChest: 0.7, upperChest: 0.5, frontDelts: 0.6, tricepsLateral: 0.5, tricepsLong: 0.5 } },
   { n: 'Smith machine incline press', t: { upperChest: 1, midChest: 0.6, frontDelts: 0.8, tricepsLong: 0.5 } },
@@ -139,6 +149,15 @@ const EQUIP: Record<Exclude<Equipment, 'other'>, string[]> = {
     'Single-arm dumbbell row',
     'Goblet squat','Incline dumbbell fly', 'Flat dumbbell fly', 'Front raise', 'Lateral raise', 'Prone Y-raise', 'Incline dumbbell curl', 'Concentration curl', 'Hammer curl', 'Overhead triceps extension', 'Walking lunge', 'Bulgarian split squat', "Farmer's carry"],
   cable: [
+    'Cable fly (mid)',
+    'Cable front raise',
+    'Cable rear delt fly',
+    'Cable upright row',
+    'Cable shrug',
+    'Cable overhead triceps extension',
+    'Cable pull-through',
+    'Cable chest press',
+    'Single-arm cable row',
     'Cable curl',
     'Rope pushdown',
     'Seated cable row','Low-to-high cable fly', 'High-to-low cable crossover', 'Cable lateral raise', 'Face pull', 'Cable external rotation', 'Straight-arm pulldown', 'Triceps pushdown', 'Cable crunch', 'Cable woodchop', 'Serratus punch', 'Cable kickback', 'Cable hip flexion'],
@@ -148,7 +167,7 @@ const EQUIP: Record<Exclude<Equipment, 'other'>, string[]> = {
     'Machine leg extension',
     'Machine chest press',
     'Machine shoulder press',
-    'Hack squat','Pec deck fly', 'Reverse pec deck', 'Hip abduction', 'Hip adduction machine', 'Leg extension', 'Lying leg curl', 'Seated leg curl', 'Standing calf raise', 'Seated calf raise', 'Leg press', 'Lat pulldown', 'Chest-supported row'],
+    'Hack squat','Pec deck fly', 'Reverse pec deck', 'Hip abduction', 'Hip adduction machine', 'Leg extension', 'Lying leg curl', 'Seated leg curl', 'Standing leg curl', 'Standing calf raise', 'Seated calf raise', 'Leg press', 'Lat pulldown', 'Chest-supported row'],
   bodyweight: ['Glute-ham raise', 'Push-up','Back extension', 'Reverse crunch', 'Hanging leg raise', 'Plank', 'Side plank', 'Sissy squat', 'Nordic curl', 'Tibialis raise', 'Dip', 'Pull-up', 'Chin-up'],
 };
 
@@ -166,6 +185,9 @@ export const EQ_LABEL: Record<string, string> = {
 
 /** [low, high, default] reps. */
 const REPS: Record<string, [number, number, number]> = {
+  'Cable fly (mid)': [12, 15, 14], 'Cable front raise': [12, 15, 14], 'Cable rear delt fly': [12, 15, 14],
+  'Cable upright row': [10, 14, 12], 'Cable shrug': [10, 14, 12], 'Cable overhead triceps extension': [10, 14, 12],
+  'Cable pull-through': [10, 14, 12], 'Cable chest press': [8, 12, 10], 'Single-arm cable row': [8, 12, 10],
   'Smith machine squat': [6, 10, 8], 'Smith machine bench press': [6, 10, 8], 'Smith machine incline press': [8, 10, 8],
   'Smith machine overhead press': [6, 10, 8], 'Smith machine row': [8, 12, 10], 'Smith machine shrug': [10, 14, 12],
   'Smith machine calf raise': [10, 14, 12], 'Machine chest press': [8, 12, 10], 'Machine shoulder press': [8, 12, 10],
@@ -184,7 +206,7 @@ const REPS: Record<string, [number, number, number]> = {
   'Triceps pushdown': [10, 14, 12], 'Overhead triceps extension': [10, 14, 12], 'Skull crusher': [8, 12, 10], 'Wrist curl': [16, 20, 18], 'Reverse wrist curl': [16, 20, 18],
   'Cable crunch': [12, 16, 14], 'Reverse crunch': [12, 20, 16], 'Hanging leg raise': [10, 14, 12], Plank: [40, 60, 40], 'Side plank': [30, 40, 30], 'Cable woodchop': [12, 16, 14], 'Serratus punch': [12, 16, 14],
   'Hip thrust': [8, 12, 10], 'Cable kickback': [12, 16, 14], 'Hip abduction': [16, 20, 18], 'Hip adduction machine': [16, 20, 18], 'Cable hip flexion': [12, 16, 14],
-  'Leg extension': [10, 14, 12], 'Sissy squat': [10, 14, 12], 'Lying leg curl': [10, 14, 12], 'Seated leg curl': [10, 14, 12], 'Nordic curl': [4, 8, 6],
+  'Leg extension': [10, 14, 12], 'Sissy squat': [10, 14, 12], 'Lying leg curl': [10, 14, 12], 'Seated leg curl': [10, 14, 12], 'Standing leg curl': [10, 14, 12], 'Nordic curl': [4, 8, 6],
   'Standing calf raise': [10, 14, 12], 'Seated calf raise': [16, 20, 18], 'Tibialis raise': [16, 24, 20],
 };
 
