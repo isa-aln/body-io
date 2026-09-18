@@ -22,31 +22,66 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 
 const blankRoutine = (name: string): Routine => ({ id: uid(), name, entries: [] });
 
-/** Two starter routines, so the app opens with something to look at. */
+/**
+ * The two routines a new install starts with, built by covering every muscle
+ * head in the exercise data.
+ *
+ *  - Isolation: one exercise per head, nothing left uncovered. 27 lifts, 11 of
+ *    them the preferred pick for their head, which is why it opens first.
+ *  - Compound: the fewest lifts that reach the most muscle. Eight lifts cover
+ *    everything except the small stuff no compound trains — calves, rotator
+ *    cuff, forearms, obliques, tibialis.
+ */
 function seedRoutines(): Routine[] {
-  const e = (n: string, sets: number): Entry | null => {
-    const ex = byName(n);
-    return ex ? { exId: ex.id, sets, reps: ex.reps, weight: null } : null;
-  };
-  const keep = (xs: (Entry | null)[]) => xs.filter((x): x is Entry => !!x);
+  const build = (name: string, list: [string, number][]): Routine => ({
+    id: uid(),
+    name,
+    entries: list.flatMap<Entry>(([n, sets]) => {
+      const ex = byName(n);
+      return ex ? [{ exId: ex.id, sets, reps: ex.reps, weight: null }] : [];
+    }),
+  });
+
   return [
-    {
-      id: uid(),
-      name: 'Day A',
-      entries: keep([e('Barbell back squat', 3), e('Barbell bench press', 3), e('Barbell bent-over row', 3)]),
-    },
-    {
-      id: uid(),
-      name: 'Day B',
-      entries: keep([
-        e('Lat pulldown', 3),
-        e('Overhead press', 3),
-        e('Seated leg curl', 3),
-        e('Incline dumbbell curl', 3),
-        e('Lateral raise', 3),
-        e('Triceps pushdown', 3),
-      ]),
-    },
+    build('Every muscle — isolation', [
+      ['Pec deck fly', 2],
+      ['Incline dumbbell fly', 2],
+      ['Back extension', 2],
+      ['Prone Y-raise', 2],
+      ['Straight-arm pulldown', 2],
+      ['Dumbbell shrug', 2],
+      ['Face pull', 2],
+      ['Cable lateral raise', 2],
+      ['Front raise', 2],
+      ['Reverse pec deck', 2],
+      ['Hammer curl', 2],
+      ['Overhead triceps extension', 2],
+      ['Preacher curl', 2],
+      ['Reverse curl', 2],
+      ['Wrist curl', 2],
+      ['Hanging leg raise', 2],
+      ['Cable crunch', 2],
+      ['Cable woodchop', 2],
+      ['Serratus punch', 2],
+      ['Hip thrust', 2],
+      ['Hip abduction', 2],
+      ['Hip adduction machine', 2],
+      ['Leg extension', 2],
+      ['Seated leg curl', 2],
+      ['Standing calf raise', 2],
+      ['Seated calf raise', 2],
+      ['Tibialis raise', 2],
+    ]),
+    build('Whole body — compound', [
+      ['Barbell bench press', 3],
+      ['Push-up', 3],
+      ['Conventional deadlift', 3],
+      ['Pull-up', 3],
+      ['Chest-supported row', 3],
+      ['Overhead press', 3],
+      ['Bulgarian split squat', 3],
+      ['Front squat', 3],
+    ]),
   ];
 }
 
@@ -63,8 +98,10 @@ const routeFromHash = (): Route =>
 
 export default function App() {
   const saved = useMemo(loadStore, []);
-  const [routines, setRoutines] = useState<Routine[]>(saved?.routines?.length ? saved.routines : seedRoutines());
-  const [activeId, setActiveId] = useState<string>(saved?.activeRoutineId ?? '');
+  const [seed] = useState(() => (saved?.routines?.length ? null : seedRoutines()));
+  const [routines, setRoutines] = useState<Routine[]>(saved?.routines?.length ? saved.routines : seed!);
+  // the isolation routine has the most preferred lifts, so it is the one that opens
+  const [activeId, setActiveId] = useState<string>(saved?.activeRoutineId ?? seed![0].id);
   const [log, setLog] = useState<SessionLog[]>(saved?.log ?? []);
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [settings, setSettings] = useState<Settings>(saved?.settings ?? DEFAULT_SETTINGS);
@@ -107,6 +144,18 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [pinned]);
 
+  /**
+   * Switching routine drops any muscle selection and pinned exercise, so the
+   * body goes back to showing the whole routine rather than staying stuck on
+   * whatever head was picked in the last one.
+   */
+  const pickRoutine = (id: string) => {
+    setActiveId(id);
+    setSelected(null);
+    setPinned(null);
+    setHoveredEx(null);
+  };
+
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setSettings((s) => ({ ...s, [k]: v }));
 
   const addPlace = () => {
@@ -144,27 +193,27 @@ export default function App() {
   const addRoutine = () => {
     const r = blankRoutine(`Routine ${routines.length + 1}`);
     setRoutines([...routines, r]);
-    setActiveId(r.id);
+    pickRoutine(r.id);
     go('plan');
   };
 
   const duplicateRoutine = () => {
     const copy: Routine = { id: uid(), name: `${routine.name} copy`, entries: routine.entries.map((e) => ({ ...e })) };
     setRoutines([...routines, copy]);
-    setActiveId(copy.id);
+    pickRoutine(copy.id);
   };
 
   const deleteRoutine = () => {
     if (routines.length === 1) return;
     const rest = routines.filter((r) => r.id !== routine.id);
     setRoutines(rest);
-    setActiveId(rest[0].id);
+    pickRoutine(rest[0].id);
   };
 
   const importRoutines = (incoming: Routine[]) => {
     if (!incoming.length) return;
     setRoutines((rs) => [...rs, ...incoming]);
-    setActiveId(incoming[0].id);
+    pickRoutine(incoming[0].id);
   };
 
   // opening a shared link drops its routine in as a new one, then cleans the URL
@@ -286,7 +335,7 @@ export default function App() {
           onPlace={(p) => set('activePlace', p)}
           onAddPlace={addPlace}
           onBackup={backup}
-          onPick={setActiveId}
+          onPick={pickRoutine}
           onWeight={(i, weight) => setEntries(routine.entries.map((e, k) => (k === i ? { ...e, weight } : e)))}
           onStart={() => go('session')}
           onPlan={() => go('plan')}
@@ -381,7 +430,7 @@ export default function App() {
           </div>
 
           <div className="wo-bar">
-            <select value={routine.id} onChange={(e) => setActiveId(e.target.value)} aria-label="Routine">
+            <select value={routine.id} onChange={(e) => pickRoutine(e.target.value)} aria-label="Routine">
               {routines.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
