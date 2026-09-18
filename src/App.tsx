@@ -43,6 +43,17 @@ function seedRoutines(): Routine[] {
   });
 
   return [
+    build('Full cycle', [
+      ['Smith machine bench press', 3],
+      ['Smith machine squat', 3],
+      ['Smith machine row', 3],
+      ['Standing leg curl', 3],
+      ['Lat pulldown', 3],
+      ['Cable chest press', 3],
+      ['Smith machine overhead press', 3],
+      ['Triceps pushdown', 3],
+      ['Face pull', 3],
+    ]),
     build('Every muscle — isolation', [
       ['Pec deck fly', 2],
       ['Incline dumbbell fly', 2],
@@ -100,7 +111,7 @@ export default function App() {
   const saved = useMemo(loadStore, []);
   const [seed] = useState(() => (saved?.routines?.length ? null : seedRoutines()));
   const [routines, setRoutines] = useState<Routine[]>(saved?.routines?.length ? saved.routines : seed!);
-  // the isolation routine has the most preferred lifts, so it is the one that opens
+  // seed[0] is the routine that opens on a fresh install
   const [activeId, setActiveId] = useState<string>(saved?.activeRoutineId ?? seed![0].id);
   const [log, setLog] = useState<SessionLog[]>(saved?.log ?? []);
   const [route, setRoute] = useState<Route>(routeFromHash);

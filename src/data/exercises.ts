@@ -12,6 +12,7 @@ const ISOLATION_RAW: Raw[] = [
   { n: 'Cable pull-through', t: { gluteMax: 1, semis: 0.7, bicepsFemoris: 0.7, erectors: 0.4 } },
   { n: 'Standing dumbbell curl', t: { bicepsShort: 0.9, bicepsLong: 0.8, brachialis: 0.4, forearmFlexors: 0.3 } },
   { n: 'Cable curl', t: { bicepsShort: 0.9, bicepsLong: 0.8, brachialis: 0.3 } },
+  { n: 'Bayesian curl', t: { bicepsLong: 1, bicepsShort: 0.6, brachialis: 0.3 } },
   { n: 'Machine lateral raise', t: { sideDelts: 1 } },
   { n: 'Machine rear delt fly', t: { rearDelts: 1, rhomboids: 0.3, midTraps: 0.3 } },
   { n: 'Dumbbell shrug', t: { upperTraps: 1, forearmFlexors: 0.3 } },
@@ -159,6 +160,7 @@ const EQUIP: Record<Exclude<Equipment, 'other'>, string[]> = {
     'Cable chest press',
     'Single-arm cable row',
     'Cable curl',
+    'Bayesian curl',
     'Rope pushdown',
     'Seated cable row','Low-to-high cable fly', 'High-to-low cable crossover', 'Cable lateral raise', 'Face pull', 'Cable external rotation', 'Straight-arm pulldown', 'Triceps pushdown', 'Cable crunch', 'Cable woodchop', 'Serratus punch', 'Cable kickback', 'Cable hip flexion'],
   machine: [
@@ -193,7 +195,7 @@ const REPS: Record<string, [number, number, number]> = {
   'Smith machine calf raise': [10, 14, 12], 'Machine chest press': [8, 12, 10], 'Machine shoulder press': [8, 12, 10],
   'Seated cable row': [8, 12, 10], 'Single-arm dumbbell row': [8, 12, 10], 'Hack squat': [8, 12, 10],
   'Goblet squat': [10, 14, 12], 'Push-up': [10, 15, 12], 'Standing dumbbell curl': [8, 12, 10],
-  'Cable curl': [10, 14, 12], 'Machine lateral raise': [12, 15, 14], 'Machine rear delt fly': [12, 15, 14],
+  'Cable curl': [10, 14, 12], 'Bayesian curl': [10, 14, 12], 'Machine lateral raise': [12, 15, 14], 'Machine rear delt fly': [12, 15, 14],
   'Dumbbell shrug': [10, 14, 12], 'Dumbbell triceps kickback': [12, 15, 14], 'Rope pushdown': [10, 14, 12],
   'Machine leg extension': [10, 14, 12], 'Glute-ham raise': [6, 10, 8],
   'Barbell back squat': [6, 8, 6], 'Front squat': [6, 8, 6], 'Conventional deadlift': [4, 6, 4], 'Sumo deadlift': [4, 6, 4], 'Romanian deadlift': [8, 10, 8], 'Good morning': [8, 12, 10],
@@ -212,7 +214,7 @@ const REPS: Record<string, [number, number, number]> = {
 
 /** "Reps" are seconds for these. */
 export const TIMED = new Set(['Plank', 'Side plank', "Farmer's carry"]);
-export const MAX_REPS = 15;
+export const MAX_REPS = 20;
 
 /** Preferred picks for hypertrophy, with the reason shown on hover. */
 const STARS: Record<string, string> = {
@@ -225,6 +227,8 @@ const STARS: Record<string, string> = {
   'Pull-up': 'Lats: full stretch at the bottom, high load; lat pulldown is an equal swap.',
   'Chest-supported row': 'Upper back: removes the lower-back limiter so the rhomboids and mid-traps reach failure first.',
   'Romanian deadlift': 'Hamstrings/glutes: hip hinge with the hamstrings lengthened under heavy load.',
+  'Bayesian curl':
+    'Biceps long head: the arm sits behind the body, so the long head is loaded at full stretch with the cable keeping tension the whole way.',
   'Incline dumbbell curl': 'Biceps long head: trains the muscle at long length, which drives more growth.',
   'Preacher curl': 'Biceps short head: stable, strict, strong stretch at the bottom.',
   'Overhead triceps extension': 'Triceps long head: overhead position lengthens the long head.',
